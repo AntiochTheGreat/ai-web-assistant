@@ -1,20 +1,35 @@
-# Django
-*.log
-*.pot
-*.pyc
+# Python
 __pycache__/
-db.sqlite3
-media/
-staticfiles/
+*.py[cod]
+*.egg-info/
+*.log
 
-# Virtual environment
-venv/
+
+# Environments
 .env
+.env.*
+.venv/
+venv/
+ENV/
 
-# VSCode / IDE
-.vscode/
+
+# Django / DB
+*.sqlite3
+/static/
+/media/
+
+
+# IDE / OS
 .idea/
-
-# OS junk
+.vscode/
 .DS_Store
 Thumbs.db
+
+
+# Byte-compiled / cache
+*.pyo
+*.pyd
+
+
+# Migrations (keep *.py, ignore caches)
+**/migrations/__pycache__/
