@@ -1,15 +1,26 @@
+"""FastAPI microservice that processes AI prompts (stub)."""
 from fastapi import FastAPI, HTTPException
-import requests
+from pydantic import BaseModel
 
-app = FastAPI(title="AI Microservice")
+app = FastAPI(title="AI Service", version="0.1.0")
 
-@app.get("/")
-def read_root():
-    return {"status": "ok", "service": "AI microservice"}
+class AskPayload(BaseModel):
+    prompt: str
+    project_id: int | None = None
+    user: str | None = None
 
-@app.post("/generate/")
-def generate_response(prompt: str):
-    # Позже сюда добавим реальный вызов LLM или OpenAI API
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Prompt is required")
-    return {"response": f"AI response to: {prompt}"}
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+@app.post("/ask")
+async def ask(payload: AskPayload) -> dict:
+    # Stubbed logic – replace with real model/provider calls later
+    if not payload.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+    answer = f"[echo] You said: {payload.prompt}"
+    return {
+        "answer": answer,
+        "project_id": payload.project_id,
+        "user": payload.user,
+    }
