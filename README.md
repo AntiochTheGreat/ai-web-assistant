@@ -1,125 +1,223 @@
 # AI Web Assistant
 
-## Overview
+AI Web Assistant is a modular full-stack project consisting of:
 
-AI Web Assistant is a modular web application that integrates **Django** and **FastAPI** to create an intelligent web-based assistant. The Django backend manages user authentication, project organization, and administrative logic, while a separate FastAPI microservice handles AI-related operations (such as interacting with language models).
+-   **Backend (Django + DRF)** --- authentication, projects, dialogs,
+    messages.
+-   **AI Microservice (FastAPI)** --- handles AI assistant responses.
+-   **PostgreSQL (Docker)** --- main database.
 
-The architecture is designed for scalability and clean separation of responsibilities between web management and AI processing.
+The system organizes information by projects, stores dialog histories,
+and processes user prompts via a local microservice.
 
----
+------------------------------------------------------------------------
 
-## Architecture
+## Features
 
-```
-ai_web_assistant/
-├── backend/
-│   ├── manage.py
-│   ├── core/                 # Django core settings and configurations
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py
-│   ├── users/                # User management app
-│   ├── projects/             # Project organization app
-│   ├── assistant/            # AI assistant integration app
-│   ├── requirements.txt
-│
-├── ai_service/               # AI microservice (FastAPI)
-│   ├── main.py
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── docker-compose.yml        # Multi-container configuration
-└── README.md                 # Project documentation
-```
+### 🔐 Authentication
 
----
+-   JWT-based (SimpleJWT)
+-   Obtain access & refresh tokens
 
-## Components
+### 📁 Projects
 
-### 1. Django Backend (`backend/`)
+-   Create/manage projects
+-   All dialogs belong to a project
 
-Responsible for managing users, projects, and the administrative panel.
+### 💬 Dialog System
 
-**Key Features:**
+-   Unlimited dialogs inside each project
+-   Messages with roles: `user` / `assistant`
+-   Filtering by dialog
+-   Historical context support
 
-* Authentication and user profiles
-* Project management and database models
-* REST API endpoints for frontend interaction
+### 🤖 AI Microservice
 
-### 2. FastAPI Microservice (`ai_service/`)
+-   FastAPI + Uvicorn
+-   `/ask` endpoint for processing a prompt
+-   `/health` endpoint for alive-checks
+-   Uses local echo logic (can be replaced with OpenAI, LLMs, etc.)
 
-Handles AI logic, model inference, and prompt processing.
+------------------------------------------------------------------------
 
-**Key Features:**
+## Project Structure
 
-* `/ask` endpoint to process AI queries
-* Interacts with external or local AI models (e.g., OpenAI API)
-* Returns structured JSON responses
+    ai_web_assistant/
+    ├── backend/                  # Django backend
+    │   ├── manage.py
+    │   ├── core/                 # Settings, URLs
+    │   ├── users/                # Auth, JWT
+    │   ├── projects/             # Project model + API
+    │   ├── assistant/            # Dialogs, messages, AI requests
+    │   └── .env
+    ├── ai_service/               # FastAPI microservice
+    │   ├── main.py
+    │   ├── requirements.txt
+    │   └── .env
+    └── docker-compose.yml        # (future)
 
-### 3. Docker Compose
+------------------------------------------------------------------------
 
-Defines containers for Django, FastAPI, and optionally PostgreSQL/Redis.
-This allows isolated development and deployment.
+## Backend (Django) Setup
 
----
+### 1. Install dependencies
 
-## Setup Instructions
-
-### 1. Clone Repository
-
-```bash
-git clone git@github.com:AntiochTheGreat/ai-web-assistant.git
-cd ai_web_assistant
+``` bash
+pip install -r backend/requirements.txt
 ```
 
-### 2. Set Up Django Backend
+### 2. Environment variables
 
-```bash
+Create `backend/.env`:
+
+    DJANGO_SECRET_KEY=change-me
+    DJANGO_DEBUG=1
+    DJANGO_ALLOWED_HOSTS=*
+
+    DJANGO_DB=postgres
+    POSTGRES_DB=aiwa
+    POSTGRES_USER=aiwa
+    POSTGRES_PASSWORD=aiwa
+    POSTGRES_HOST=127.0.0.1
+    POSTGRES_PORT=5432
+
+    AI_SERVICE_URL=http://127.0.0.1:5005000
+
+### 3. Apply migrations
+
+``` bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
 python manage.py migrate
+```
+
+### 4. Create superuser
+
+``` bash
+python manage.py createsuperuser
+```
+
+### 5. Run backend server
+
+``` bash
 python manage.py runserver
 ```
 
-### 3. Set Up AI Microservice
+Swagger docs available at:
 
-```bash
-cd ai_service
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m uvicorn main:app --reload --port 5000
+    http://127.0.0.1:8000/api/docs/
+
+------------------------------------------------------------------------
+
+## AI Microservice Setup (FastAPI)
+
+### 1. Install dependencies
+
+``` bash
+pip install -r ai_service/requirements.txt
 ```
 
-### 4. (Optional) Run with Docker Compose
+### 2. Run the microservice
 
-```bash
-docker-compose up --build
+``` bash
+uvicorn main:app --host 127.0.0.1 --port 5000 --reload
 ```
 
----
+### 3. Health check
 
-## Example Workflow
+``` bash
+GET http://127.0.0.1:5000/health
+```
 
-1. The user logs in through the Django backend.
-2. A request is made from the web interface to the Django API.
-3. Django forwards AI-related requests to the FastAPI microservice.
-4. The AI microservice processes the input (e.g., through OpenAI API) and returns the response.
-5. The result is displayed in the user's browser.
+Expected:
 
----
+``` json
+{"status": "ok"}
+```
 
-## Future Roadmap
+------------------------------------------------------------------------
 
-* Integrate OpenAI, Anthropic, and Mistral APIs.
-* Add a vector database for knowledge retrieval (e.g., pgvector or Chroma).
-* Develop frontend (React/Vue).
-* Enable context-aware conversations and document-based training.
+## PostgreSQL Setup (Docker)
 
----
+### Start PostgreSQL
+
+``` bash
+docker run --name aiwa-postgres ^
+  -e POSTGRES_DB=aiwa ^
+  -e POSTGRES_USER=aiwa ^
+  -e POSTGRES_PASSWORD=aiwa ^
+  -p 5432:5432 ^
+  -d postgres:16
+```
+
+### Manage container
+
+``` bash
+docker stop aiwa-postgres
+docker start aiwa-postgres
+docker ps
+```
+
+------------------------------------------------------------------------
+
+## API Overview
+
+### Authentication
+
+-   `POST /api/users/token/` --- get access/refresh tokens\
+-   `POST /api/users/token/refresh/`
+
+### Projects
+
+-   `GET/POST /api/projects/`
+-   User-only access by owner permission
+
+### Dialogs
+
+-   `GET/POST /api/assistant/dialogs/`
+-   `GET /api/assistant/dialogs/{id}/messages/`
+
+### Messages
+
+-   `GET /api/assistant/messages/?dialog=<id>` --- filter messages by
+    dialog
+
+### Assistant
+
+-   `POST /api/assistant/ask/` --- send prompt to AI microservice
+
+Request body:
+
+``` json
+{
+  "project_id": 1,
+  "prompt": "Hello!",
+  "dialog_id": 3
+}
+```
+
+Response example:
+
+``` json
+{
+  "answer": "[echo] You said: Hello!",
+  "dialog_id": 3,
+  "project_id": 1
+}
+```
+
+------------------------------------------------------------------------
+
+## Future Improvements
+
+-   Docker Compose for full-stack start
+    (`backend + ai_service + postgres`)
+-   Real LLM integration (OpenAI, Ollama, DeepSeek, etc.)
+-   Frontend (React / Next.js)
+-   Token usage statistics
+-   Rich chat UI and context tools
+
+------------------------------------------------------------------------
 
 ## License
 
-MIT License © 2025 Sergey Bakharev
+MIT License
