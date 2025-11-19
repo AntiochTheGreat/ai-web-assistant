@@ -133,6 +133,16 @@ Expected:
 ``` json
 {"status": "ok"}
 ```
+### 4. OpenAI integration
+
+If `OPENAI_API_KEY` is provided (either in `ai_service/.env` or docker-compose `.env`),
+the AI microservice will use OpenAI Chat Completion instead of echo:
+
+```env
+OPENAI_API_KEY=your_real_api_key_here
+OPENAI_MODEL=gpt-4o-mini
+If the key is not set, the service falls back to a simple echo mode
+```
 
 ------------------------------------------------------------------------
 

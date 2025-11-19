@@ -23,6 +23,9 @@ services:
       - db
     volumes:
       - ./ai_service:/app
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: "gpt-4o-mini"
 
   backend:
     build: ./backend
